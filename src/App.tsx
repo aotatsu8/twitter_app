@@ -11,6 +11,11 @@ const App: React.FC = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    /**
+     * onAuthStateChangedはfirebaseのuserに配して変化があったときに毎回呼び出される。
+     * 実行されるとサブスクライブが始まり監視がはじまる。返り値にアンサブスクライブする関数が返る。
+     * 引数には変化後のuser情報が格納される。
+     */
     const unSub = auth.onAuthStateChanged((authUser) => {
       if (authUser) {
         dispatch(
