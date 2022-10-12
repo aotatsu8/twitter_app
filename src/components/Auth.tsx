@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "./Auth.module.css";
 import { useDispatch } from "react-redux";
+import { updateUserProfile } from "../features/userSlice";
 import { auth, provider, storage } from "../firebase";
 
 import {
@@ -59,9 +60,20 @@ const useStyles = makeStyles((theme) => ({
 
 const Auth: React.FC = () => {
   const classes = useStyles();
+  const dispach = useDispatch();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [avatarImage, setAvatarImage] = useState<File | null>(null);
   const [isLogin, setIsLogin] = useState(true);
+
+  const onChangeImageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files![0]) {
+      setAvatarImage(e.target.files![0]);
+      e.target.value = "";
+    }
+  };
 
   const signInEmail = async () => {
     await auth.signInWithEmailAndPassword(email, password);
@@ -71,7 +83,30 @@ const Auth: React.FC = () => {
     await auth.signInWithPopup(provider).catch((err) => alert(err.message));
   };
   const signUpEmail = async () => {
-    await auth.createUserWithEmailAndPassword(email, password);
+    const authUser = await auth.createUserWithEmailAndPassword(email, password);
+    let url = "";
+    if (avatarImage) {
+      const S =
+        "abcdefghijklmnopqrstuvwxygABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const N = 16;
+      const randomChar = Array.from(crypto.getRandomValues(new Uint32Array(N)))
+        .map((n) => S[n % S.length])
+        .join("");
+      const fileName = randomChar + "_" + avatarImage.name;
+
+      await storage.ref(`avatars/${fileName}`).put(avatarImage);
+      url = await storage.ref("avatars").child(fileName).getDownloadURL();
+    }
+    await authUser.user?.updateProfile({
+      displayName: username,
+      photoURL: url,
+    });
+    dispach(
+      updateUserProfile({
+        displayName: username,
+        photoUrl: url,
+      })
+    );
   };
 
   return (
